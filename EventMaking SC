@@ -1,0 +1,50 @@
+// SPDX-License-Identifier: MIT
+pragma solidity ^0.8.7;
+
+contract Event0 {
+    address Buyer;
+
+    struct Event{
+        address Organizer;
+        string Name;
+        uint Date;
+        uint Price;
+        uint Total_Tickets;
+        uint Remaining_Tickets;
+    }
+
+    mapping(uint=>Event) public Events;
+    mapping(address=>mapping(uint=>uint)) public Tickets;
+    uint public Next_ID;
+
+    function Create_Event(string memory Name, uint Date, uint Price, uint Total_Tickets) external {
+        require(Date>block.timestamp, "date must b in future");
+        require(Total_Tickets>0, "Tickets must be greater than 0");
+        Events[Next_ID] = Event(msg.sender, Name, Date, Price, Total_Tickets, Total_Tickets);
+        Next_ID++;
+    }
+
+    function Buy_Tickets(uint ID, uint Quantity) external payable  {
+        require(Events[ID].Date!=0, "Sorry this event doesn't exist");
+        require(Events[ID].Date>block.timestamp, "sorry this event is already occured");
+        Event storage _Event = Events[ID];
+        require(msg.value==(_Event.Price*Quantity), "You haven't Enough Fund");
+        require(_Event.Remaining_Tickets>=Quantity, "We haven't Enough Tickets");
+        _Event.Remaining_Tickets-=Quantity;
+        Tickets[msg.sender][ID]+=Quantity;
+        msg.sender==Buyer;
+    }
+
+    modifier Only_Buyer(){
+        _;
+    }
+
+    function Transfer(uint ID, uint Quantity, address to) public payable Only_Buyer {
+        // require(Events[ID].Date!=0, "Sorry this event doesn't exist"); 
+        // require(Events[ID].Date>block.timestamp, "sorry this event is already occured");
+        // we can also do this by function & without modifier like above code ^^^^^ 
+        require(Tickets[msg.sender][ID]>=Quantity, "You haven't Enough Tickets");
+        Tickets[msg.sender][ID]-=Quantity;
+        Tickets[to][ID]+=Quantity;
+    }
+}
